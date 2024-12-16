@@ -5,17 +5,15 @@ const redis = require("../utils/redis");
 const { UserRole } = require("../constant/enums");
 const { User } = require("../models/index");
 const { successResponse, errorResponse } = require("../utils/response");
+const { registerSchema, loginSchema } = require("../utils/validate");
 
 module.exports = {
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
 
-      if (!email || !password) {
-        return res.status(400).json({
-          message: "Email and password are required",
-        });
-      }
+      // Validate input
+      await loginSchema.validate(req.body, { abortEarly: false });
 
       const user = await getUserByEmail(email);
 
@@ -42,10 +40,22 @@ module.exports = {
         },
       });
     } catch (error) {
+      if (error.name === "ValidationError") {
+        const validationErrors = error.inner.map((err) => ({
+          field: err.path,
+          message: err.message,
+        }));
+
+        return res.status(400).json({
+          message: "Validation failed",
+          errors: validationErrors,
+        });
+      }
+
       return errorResponse({
         res,
-        status: error.status || 500,
-        message: "Login failed",
+        status: 200,
+        message: "Email or password is incorrect",
         errors: error.message,
       });
     }
@@ -56,9 +66,19 @@ module.exports = {
         name,
         email,
         phone,
-        role = UserRole.USER,
         password,
       } = req.body;
+
+      // Validate input
+      await registerSchema.validate(req.body, { abortEarly: false });
+
+      const newUser = {
+        name,
+        email,
+        phone,
+        role: +UserRole.USER,
+        password: hashPassword(password)
+      }
 
       if (!req.body) {
         return res.status(400).json({
@@ -66,7 +86,12 @@ module.exports = {
         });
       }
 
-      const checkEmailExist = await getUserByEmail(email);
+      // Check tài khoản tồn tại không
+      const checkEmailExist = await User.findOne({
+        where: {
+          email: newUser.email
+        }
+      })
 
       if (checkEmailExist) {
         return res.status(400).json({
@@ -74,31 +99,37 @@ module.exports = {
         });
       }
 
-      const newUser = await User.create({
-        name: name,
-        email: email,
-        phone: phone,
-        role: role,
-        password: hashPassword(password),
-      });
+      const createdUser = await User.create(newUser);
 
-      const accessToken = createAccessToken({ userId: newUser.id });
-      const refreshToken = createRefreshToken(newUser.id);
+      const accessToken = createAccessToken({ userId: createdUser.id });
+      const refreshToken = createRefreshToken(createdUser.id);
 
       return successResponse({
         res,
         message: "Login successfully",
         data: {
-          newUser,
+          createdUser,
           accessToken,
           refreshToken,
         },
       });
-
     } catch (error) {
+      if (error.name === "ValidationError") {
+        const validationErrors = error.inner.map((err) => ({
+          field: err.path,
+          message: err.message,
+        }));
+
+        return res.status(400).json({
+          message: "Validation failed",
+          errors: validationErrors,
+        });
+      }
+
+
       return errorResponse({
         res,
-        status: error.status || 500,
+        status: 200,
         message: "Register failed",
         errors: error.message,
       });
