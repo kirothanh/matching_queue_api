@@ -1,6 +1,10 @@
 const { getUserByEmail } = require("../services/auth.service");
 const { comparePassword, hashPassword } = require("../utils/hash");
-const { createAccessToken, createRefreshToken, verifyRefreshToken } = require("../utils/jwt");
+const {
+  createAccessToken,
+  createRefreshToken,
+  verifyRefreshToken,
+} = require("../utils/jwt");
 const redis = require("../utils/redis");
 const { UserRole } = require("../constant/enums");
 const { User } = require("../models/index");
@@ -62,12 +66,7 @@ module.exports = {
   },
   register: async (req, res) => {
     try {
-      const {
-        name,
-        email,
-        phone,
-        password,
-      } = req.body;
+      const { name, email, phone, password } = req.body;
 
       // Validate input
       await registerSchema.validate(req.body, { abortEarly: false });
@@ -77,8 +76,8 @@ module.exports = {
         email,
         phone,
         role: +UserRole.USER,
-        password: hashPassword(password)
-      }
+        password: hashPassword(password),
+      };
 
       if (!req.body) {
         return res.status(400).json({
@@ -89,9 +88,9 @@ module.exports = {
       // Check tài khoản tồn tại không
       const checkEmailExist = await User.findOne({
         where: {
-          email: newUser.email
-        }
-      })
+          email: newUser.email,
+        },
+      });
 
       if (checkEmailExist) {
         return res.status(400).json({
@@ -126,7 +125,6 @@ module.exports = {
         });
       }
 
-
       return errorResponse({
         res,
         status: 200,
@@ -148,13 +146,13 @@ module.exports = {
       }
 
       await redis.connect();
-      await redis.set(`Blacklist: ${accessToken}`, accessToken)
-      await redis.close()
+      await redis.set(`Blacklist: ${accessToken}`, accessToken);
+      await redis.close();
 
       return successResponse({
         res,
-        message: "Logout successfully"
-      })
+        message: "Logout successfully",
+      });
     } catch (error) {
       return errorResponse({
         res,
@@ -170,10 +168,10 @@ module.exports = {
       const { userId } = await verifyRefreshToken(refreshToken);
 
       await redis.connect();
-      const tokenFromRedis = await redis.get(`RefreshToken:${refreshToken}`)
-      await redis.close()
+      const tokenFromRedis = await redis.get(`RefreshToken:${refreshToken}`);
+      await redis.close();
       if (!tokenFromRedis) {
-        throw new Error("Refresh token not found")
+        throw new Error("Refresh token not found");
       }
 
       const accessTokenNew = createAccessToken({ userId });
@@ -182,17 +180,47 @@ module.exports = {
         res,
         data: {
           accessTokenNew,
-          refreshToken
+          refreshToken,
         },
         message: "Refresh token successfully",
-      })
+      });
     } catch (error) {
       return errorResponse({
         res,
         status: 401,
         message: "Refresh token failed",
-        errors: error.message
-      })
+        errors: error.message,
+      });
     }
-  }
-}
+  },
+  googleCallback: async (req, res) => {
+    try {
+      const [user, created] = await User.findOrCreate({
+        where: {
+          email: req.user.emails[0].value,
+        },
+        defaults: {
+          name: req.user.displayName,
+          email: req.user.emails[0].value,
+          password: hashPassword(req.user.id),
+          role: +UserRole.USER,
+          avatar: req.user.photos[0]?.value,
+        },
+      });
+
+      const accessToken = createAccessToken({ userId: user.id });
+      const refreshToken = createRefreshToken(user.id);
+
+      res.redirect(
+        `${process.env.FRONTEND_URL}/login?accessToken=${accessToken}&refreshToken=${refreshToken}`
+      );
+    } catch (error) {
+      return errorResponse({
+        res,
+        status: 401,
+        message: "Login failed",
+        errors: error.message,
+      });
+    }
+  },
+};
