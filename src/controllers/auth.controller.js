@@ -4,12 +4,14 @@ const {
   createAccessToken,
   createRefreshToken,
   verifyRefreshToken,
+  verifyAccessToken,
 } = require("../utils/jwt");
 const redis = require("../utils/redis");
 const { UserRole } = require("../constant/enums");
 const { User } = require("../models/index");
 const { successResponse, errorResponse } = require("../utils/response");
 const { registerSchema, loginSchema } = require("../utils/validate");
+const sendMail = require("../utils/mail");
 
 module.exports = {
   login: async (req, res) => {
@@ -223,4 +225,100 @@ module.exports = {
       });
     }
   },
-};
+  forgotPassword: async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      const checkEmailExist = await User.findOne({
+        where: {
+          email: email,
+        },
+      });
+
+      if (!checkEmailExist) {
+        return errorResponse({
+          res,
+          status: 404,
+          message: "Email not found",
+        });
+      }
+
+      const token = createAccessToken({ userId: checkEmailExist.id });
+
+      const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+      const content = `
+    <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+      <h2 style="color: #333; font-size: 22px; text-align: center;">Xin chào ${email}!</h2>
+      <p style="font-size: 16px; color: #555;">
+        Ai đó đã gửi yêu cầu đổi mật khẩu của bạn. Bạn có thể reset mật khẩu bằng cách click vào link bên dưới.
+      </p>
+      <p style="text-align: center;">
+        <a href="${resetLink}" style="display: inline-block; background-color: #007bff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; text-align: center; font-size: 16px;">Đổi mật khẩu</a>
+      </p>
+      <p style="font-size: 16px; color: #555;">
+        Nếu bạn không gửi yêu cầu này, cảm phiền bỏ qua email này. Mật khẩu của bạn sẽ không thay đổi cho tới khi bạn truy cập link ở trên và khởi tạo cái mới.
+      </p>
+      <p style="text-align: center; margin-top: 30px; font-size: 14px; color: #777;">
+        Trân trọng,<br/>
+        Matching queue
+      </p>
+    </div>
+  `;
+
+      await sendMail(email, "Quên mật khẩu", content);
+
+      return res.status(200).json({
+        status: true,
+        message: "Reset password link sent successfully",
+      });
+    } catch (error) {
+      return errorResponse({
+        res,
+        status: 401,
+        message: "Forgot password failed",
+        errors: error.message,
+      });
+    }
+  },
+  resetPassword: async (req, res) => {
+    try {
+      // Receive token and password from front-end
+      const { token, password } = req.body;
+
+      // Decoded token to get userId
+      const decoded = verifyAccessToken(token);
+
+      // Get user by userId
+      const user = await User.findOne({
+        where: {
+          id: decoded.userId,
+        },
+      });
+
+      // Check user exists
+      if (!user) {
+        return errorResponse({
+          res,
+          status: 404,
+          message: "User not found",
+        });
+      }
+
+      user.password = hashPassword(password);
+      await user.save();
+
+      return res.status(200).json({
+        status: true,
+        message: "Reset password successfully",
+      });
+    } catch (error) {
+      console.log('error: ', error)
+      return errorResponse({
+        res,
+        status: 401,
+        message: "Reset password failed",
+      })
+    }
+  }
+}
