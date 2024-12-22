@@ -109,7 +109,7 @@ module.exports = {
         res,
         message: "Login successfully",
         data: {
-          createdUser,
+          user: createdUser,
           accessToken,
           refreshToken,
         },
@@ -176,13 +176,12 @@ module.exports = {
         throw new Error("Refresh token not found");
       }
 
-      const accessTokenNew = createAccessToken({ userId });
+      const accessToken = createAccessToken({ userId });
 
       return successResponse({
         res,
         data: {
-          accessTokenNew,
-          refreshToken,
+          accessToken,
         },
         message: "Refresh token successfully",
       });

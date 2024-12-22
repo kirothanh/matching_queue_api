@@ -1,28 +1,32 @@
-const isAuthorized = async (req, res, next) => {
-  const accessTokenFromHeader = req.headers.authorization;
+const { verifyAccessToken } = require("../utils/jwt");
 
-  if (!accessTokenFromHeader) {
-    return res.status(401).json({
-      success: false,
-      message: 'Unauthorized! (Token Not Found)'
-    });
-  }
+module.exports = {
+  isAuthorized: async (req, res, next) => {
+    let accessTokenFromHeader = req.headers.authorization;
 
-  try {
-    const { userId } = await verifyAccessToken(accessTokenFromHeader);
-    req.userId = userId;
-    next();
-  } catch (error) {
-    if (error.message?.includes('jwt expired')) {
-      return res.status(410).json({
-        message: 'Need to refresh token'
-      })
+    if (accessTokenFromHeader?.startsWith('Bearer ')) {
+      accessTokenFromHeader = accessTokenFromHeader.slice(7, accessTokenFromHeader.length);
     }
 
-    return res.status(401).json({ message: 'Unauthorized! Please Login!' })
-  }
-}
+    if (!accessTokenFromHeader) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized! (Token Not Found)'
+      });
+    }
 
-export const authMiddleware = {
-  isAuthorized
-}
+    try {
+      const { userId } = await verifyAccessToken(accessTokenFromHeader);
+      req.userId = userId;
+      next();
+    } catch (error) {
+      if (error.message?.includes('jwt expired')) {
+        return res.status(410).json({
+          message: 'Need to refresh token'
+        })
+      }
+
+      return res.status(401).json({ message: 'Unauthorized! Please Login!' })
+    }
+  }
+};

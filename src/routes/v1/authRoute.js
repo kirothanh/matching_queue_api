@@ -10,9 +10,7 @@ router.post("/logout", authController.logout);
 router.post("/refresh_token", authController.refreshToken);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
-
-// Login social media
-// Google
+// Login by Google
 router.get("/google", passport.authenticate("google", { scope: ["email", "profile"] }));
 router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login" }), authController.googleCallback);
 

@@ -23,6 +23,9 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+
+
+
 // Route
 const api_V1 = require('./routes/api');
 app.use('/api', api_V1);
