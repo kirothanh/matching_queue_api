@@ -8,10 +8,11 @@ const {
 } = require("../utils/jwt");
 const redis = require("../utils/redis");
 const { UserRole } = require("../constant/enums");
-const { User } = require("../models/index");
+const { User, Otp } = require("../models/index");
 const { successResponse, errorResponse } = require("../utils/response");
 const { registerSchema, loginSchema } = require("../utils/validate");
 const sendMail = require("../utils/mail");
+const { generateOTP } = require("../utils/otp");
 
 module.exports = {
   login: async (req, res) => {
@@ -102,17 +103,38 @@ module.exports = {
 
       const createdUser = await User.create(newUser);
 
-      const accessToken = createAccessToken({ userId: createdUser.id });
-      const refreshToken = createRefreshToken(createdUser.id);
+      // Tạo OTP và hết hạn OTP
+      const otp = generateOTP();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      await Otp.create({
+        user_id: createdUser.id,
+        otp,
+        expires_at: expiresAt,
+      });
+
+      const content = `
+    <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+      <h2 style="color: #333; font-size: 22px; text-align: center;">Xin chào ${createdUser.email}!</h2>
+      <p style="font-size: 16px; color: #555;">
+        Đây là mã OTP của bạn. Nó sẽ hết hạn sau 10 phút.
+      </p>
+      <p style="font-size: 16px; color: #555; text-align: center; font-weight: bold;">
+        ${otp}
+      </p>
+      <p style="text-align: center; margin-top: 30px; font-size: 14px; color: #777;">
+        Trân trọng,<br/>
+        Matching queue
+      </p>
+    </div>
+  `;
+
+      await sendMail(createdUser.email, "Xác thực OTP đăng ký", content);
 
       return successResponse({
         res,
-        message: "Login successfully",
-        data: {
-          user: createdUser,
-          accessToken,
-          refreshToken,
-        },
+        message: "Đăng ký thành công! Vui lòng kiểm tra email để nhập mã OTP.",
+        data: createdUser,
       });
     } catch (error) {
       if (error.name === "ValidationError") {
@@ -167,6 +189,7 @@ module.exports = {
   refreshToken: async (req, res) => {
     try {
       const { refreshToken } = req.body;
+      console.log("refreshToken", refreshToken);
       const { userId } = await verifyRefreshToken(refreshToken);
 
       await redis.connect();
@@ -186,10 +209,65 @@ module.exports = {
         message: "Refresh token successfully",
       });
     } catch (error) {
+      console.log(error);
       return errorResponse({
         res,
         status: 401,
         message: "Refresh token failed",
+        errors: error.message,
+      });
+    }
+  },
+  verifyOTP: async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+
+      const user = await User.findOne({
+        where: {
+          email,
+        },
+      });
+
+      if (!user) {
+        return res.status(400).json({ message: "Thông tin không hợp lệ" });
+      }
+
+      const userOtp = await Otp.findOne({
+        where: {
+          user_id: user.id, otp
+        },
+      });
+
+      if (!userOtp || new Date() > userOtp.expires_at) {
+        return res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
+      }
+
+      // Xóa OTP sau khi xác thực
+      await userOtp.destroy();
+
+      // Kích hoạt tài khoản
+      user.is_active = true;
+      await user.save();
+
+      // Tạo token sau khi xác thực thành công
+      const accessToken = createAccessToken({ userId: user.id });
+      const refreshToken = createRefreshToken(user.id);
+
+      // Phản hồi thành công với token
+      return successResponse({
+        res,
+        message: "Xác thực OTP thành công",
+        data: {
+          accessToken,
+          refreshToken,
+        },
+      });
+
+    } catch (error) {
+      return errorResponse({
+        res,
+        status: 401,
+        message: "Verify OTP failed",
         errors: error.message,
       });
     }
@@ -206,11 +284,20 @@ module.exports = {
           password: hashPassword(req.user.id),
           role: +UserRole.USER,
           avatar: req.user.photos[0]?.value,
+          is_active: true,
         },
       });
 
+      if (!created && !user.is_active) {
+        await user.update({ is_active: true });
+      }
+
       const accessToken = createAccessToken({ userId: user.id });
       const refreshToken = createRefreshToken(user.id);
+
+      await redis.connect();
+      await redis.set(`RefreshToken:${refreshToken}`, refreshToken);
+      await redis.close();
 
       res.redirect(
         `${process.env.FRONTEND_URL}/login?accessToken=${accessToken}&refreshToken=${refreshToken}`
@@ -312,12 +399,12 @@ module.exports = {
         message: "Reset password successfully",
       });
     } catch (error) {
-      console.log('error: ', error)
+      console.log("error: ", error);
       return errorResponse({
         res,
         status: 401,
         message: "Reset password failed",
-      })
+      });
     }
-  }
-}
+  },
+};
