@@ -1,6 +1,30 @@
 const { DeleteObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { s3Client } = require("./s3-credentials");
 
+const createImageObject = async (file, fileName) => {
+  try {
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: `${fileName}`,
+      Body: file,
+      ContentType: "image/png, image/jpeg, image/jpg, image/webp",
+    };
+
+    const command = new PutObjectCommand(params);
+    const data = await s3Client.send(command);
+
+    if (data.$metadata.httpStatusCode !== 200) {
+      throw new Error("Failed to upload file to S3.");
+    }
+
+    const url = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+    return { url, key: params.Key };
+  } catch (error) {
+    console.error("Error in createImageObject:", error);
+    throw error;
+  }
+};
+
 const deleteImageObject = async (key) => {
   try {
     const params = {
@@ -32,7 +56,7 @@ const putImageObject = async (file, fileName, oldKey = null) => {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: `${fileName}`,
       Body: file,
-      ContentType: "image/png, image/jpeg, image/jpg",
+      ContentType: "image/png, image/jpeg, image/jpg, image/webp",
     };
 
     const command = new PutObjectCommand(params);
@@ -53,4 +77,5 @@ const putImageObject = async (file, fileName, oldKey = null) => {
 module.exports = {
   putImageObject,
   deleteImageObject,
+  createImageObject
 };

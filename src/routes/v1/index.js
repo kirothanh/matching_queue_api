@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authRouter = require("../v1/authRoute");
+const adminRouter = require("../v1/adminRoute");
 const profileRouter = require("../v1/profileRoute");
 const { isAuthorized } = require("../../middlewares/authMiddlewares");
 
@@ -13,5 +14,7 @@ router.get('/status', (req, res) => {
 router.use('/auth', authRouter);
 
 router.use('/profile', isAuthorized, profileRouter);
+
+router.use('/admin', isAuthorized, adminRouter)
 
 module.exports = router

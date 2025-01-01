@@ -188,7 +188,8 @@ module.exports = {
   },
   refreshToken: async (req, res) => {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.body?.refreshToken;
+
       console.log("refreshToken", refreshToken);
       const { userId } = await verifyRefreshToken(refreshToken);
 
