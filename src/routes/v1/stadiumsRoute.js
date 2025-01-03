@@ -5,9 +5,9 @@ const { checkRole } = require("../../middlewares/roleMiddleware");
 const { UserRole } = require("../../constant/enums");
 const { upload } = require("../../middlewares/uploadMiddlewares");
 
-router.use(checkRole(UserRole.ADMIN));
-
 router.get("/", stadiumsController.getStadiums);
+
+router.use(checkRole(UserRole.ADMIN));
 router.get("/:id", stadiumsController.getStadiumDetail);
 router.post("/create", upload.single("image"), stadiumsController.createStadium);
 router.patch("/update/:id", upload.single("image"), stadiumsController.updateStadium);
