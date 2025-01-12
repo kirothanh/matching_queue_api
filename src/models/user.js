@@ -15,6 +15,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'user_id',
         as: 'otps'
       })
+      User.hasMany(models.Match, {
+        foreignKey: 'createdBy',
+        as: 'matches'
+      })
     }
   }
   User.init({

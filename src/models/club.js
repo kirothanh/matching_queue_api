@@ -11,6 +11,10 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      Club.hasOne(models.Match, {
+        foreignKey: 'club_id',
+        as: 'club'
+      })
     }
   }
   Club.init({

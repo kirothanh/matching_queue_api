@@ -112,7 +112,7 @@ module.exports = {
   },
   updateStadium: async (req, res) => {
     try {
-      const { name, address, province, district, ward, image } = req.body;
+      const { name, address, province, district, ward, image, oldKeyUrl } = req.body;
       const stadiumId = req.params.id;
 
       const updateStadiumData = {
@@ -128,7 +128,7 @@ module.exports = {
         const uploadResult = await putImageObject(
           req.file.buffer,
           fileName,
-          image
+          oldKeyUrl,
         );
 
         if (!uploadResult) {

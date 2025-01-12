@@ -21,5 +21,11 @@ module.exports = {
   },
   close: async function () {
     await this.client.disconnect()
+  },
+  pushMatchQueue: async function (match_id, partner_id) {
+    await this.client.rPush(`match_${match_id}`, partner_id)
+  },
+  getMatchQueue: async function (match_id) {
+    return await this.client.lRange(`match_${match_id}`, 0, -1)
   }
 }

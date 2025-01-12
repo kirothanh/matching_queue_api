@@ -11,6 +11,18 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      Match.belongsTo(models.Club, {
+        foreignKey: 'club_id',
+        as: 'club'
+      })
+      Match.belongsTo(models.Stadium, {
+        foreignKey: 'stadium_id',
+        as: 'stadium'
+      })
+      Match.belongsTo(models.User, {
+        foreignKey: 'createdBy',
+        as: 'creator'
+      })
     }
   }
   Match.init({
@@ -22,6 +34,7 @@ module.exports = (sequelize, DataTypes) => {
     stadium_id: DataTypes.INTEGER,
     club_id: DataTypes.INTEGER,
     matchDate: DataTypes.DATE,
+    matchTime: DataTypes.TIME,
     partner_id: DataTypes.INTEGER,
     createdBy: DataTypes.INTEGER,
     contactNumber: DataTypes.STRING,

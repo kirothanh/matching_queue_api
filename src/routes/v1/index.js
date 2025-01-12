@@ -6,6 +6,7 @@ const clubRouter = require("../v1/clubRoute");
 const matchesRouter = require("../v1/matchesRoute");
 const profileRouter = require("../v1/profileRoute");
 const { isAuthorized } = require("../../middlewares/authMiddlewares");
+const { redisConnect } = require("../../middlewares/redisMiddlewares");
 
 /** Check APIs api/v1/status */
 router.get('/status', (req, res) => {
@@ -18,7 +19,7 @@ router.use('/auth', authRouter);
 // Client
 router.use('/profile', isAuthorized, profileRouter);
 router.use('/club', isAuthorized, clubRouter);
-router.use('/matches', isAuthorized, matchesRouter);
+router.use('/matches', isAuthorized, redisConnect, matchesRouter);
 
 // Admin
 router.use('/admin', isAuthorized, adminRouter)

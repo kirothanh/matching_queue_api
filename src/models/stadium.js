@@ -27,6 +27,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'ward_id',
         as: 'ward'
       })
+      Stadium.hasOne(models.Match, {
+        foreignKey: 'stadium_id',
+        as: 'match'
+      })
     }
   }
   Stadium.init({
