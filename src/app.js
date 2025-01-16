@@ -4,7 +4,6 @@ const socketIO = require("socket.io");
 const session = require('express-session');
 const passport = require('passport');
 const socketHandler = require("./utils/socketHandler");
-const SocketService = require('./services/socket.service');
 require("./utils/passport");
 require("dotenv").config();
 const cors = require('cors')

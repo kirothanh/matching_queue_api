@@ -19,6 +19,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'createdBy',
         as: 'matches'
       })
+      User.hasMany(models.Chat, {
+        foreignKey: 'senderId',
+        as: 'chats'
+      })
     }
   }
   User.init({

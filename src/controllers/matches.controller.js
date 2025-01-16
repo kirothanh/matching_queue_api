@@ -248,5 +248,44 @@ module.exports = {
         message: error.message,
       });
     }
+  },
+  confirmPartnerInMatch: async (req, res) => {
+    try {
+      const { partnerId, matchId } = req.body;
+
+      if (!partnerId || !matchId) {
+        return res.status(404).json({
+          success: false,
+          message: "partnerID or matchId need"
+        })
+      }
+
+      const [updatedRows] = await Match.update(
+        {
+          partner_id: partnerId
+        },
+        {
+          where: { id: matchId }
+        }
+      )
+
+      if (updatedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Match not found or partner ID already set."
+        })
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Confirm partner in match successfully"
+      })
+    } catch (error) {
+      console.error('Error updating partnerId in Match:', error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error"
+      });
+    }
   }
 };
