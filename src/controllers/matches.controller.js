@@ -159,11 +159,33 @@ module.exports = {
         });
       }
 
+      const matchWithDetails = await Match.findOne({
+        where: { id: createdMatch.id },
+        include: [
+          {
+            model: Stadium,
+            as: "stadium",
+            attributes: ["id", "name"],
+          },
+          {
+            model: Club,
+            as: "club",
+            attributes: ["id", "name", "imageUrl"],
+          },
+          {
+            model: User,
+            as: "creator",
+            attributes: ["id", "name"],
+          },
+        ],
+      });
+
       res.status(201).json({
         success: true,
         message: "Create match successfully",
-        data: newMatch,
+        data: matchWithDetails,
       });
+
     } catch (error) {
       console.log(error);
       res.status(500).json({
@@ -275,6 +297,12 @@ module.exports = {
           message: "Match not found or partner ID already set."
         })
       }
+
+      _io.to(`match_${matchId}`).emit("partnerConfirmed", {
+        matchId,
+        partnerId,
+        message: `Partner has been confirmed match_${matchId}!`
+      })
 
       return res.status(200).json({
         success: true,

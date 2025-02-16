@@ -1,17 +1,15 @@
-const { Club } = require("../models/index");
-
 const socketHandler = (io) => {
   io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.on("joinRoom", async ({ matchId, partnerId }) => {
+    socket.on("matchCreated", (newMatch) => {
+      io.emit("matchCreated", newMatch);
+    });
+
+    socket.on("joinRoom", async ({ matchId }) => {
       try {
         const roomName = `match_${matchId}`;
         socket.join(roomName);
-
-        // // Phát broadcast đến các thành viên trong room
-        // socket.broadcast.emit("userJoined", "Room has a new person joined");
-
         console.log(`User ${socket.id} joined room ${roomName}`);
       } catch (error) {
         console.error(error);
@@ -27,6 +25,11 @@ const socketHandler = (io) => {
         console.error("Error broadcasting userJoined:", error);
         socket.emit("error", "Failed to broadcast userJoined.");
       }
+    })
+
+    socket.on("partnerConfirmed", ({ matchId, partnerId, message }) => {
+      const roomName = `match_${matchId}`;
+      io.to(roomName).emit("partnerConfirmed", { matchId, partnerId, message });
     })
 
     socket.on("disconnect", () => {
