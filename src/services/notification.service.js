@@ -46,7 +46,7 @@ const getAllNotificationDetail = async (userId) => {
   } catch (error) {
     throw new Error(error.message);
   }
-}
+};
 
 const createNotification = async (userId, title) => {
   try {
@@ -71,6 +71,69 @@ const createNotification = async (userId, title) => {
   } catch (error) {
     throw new Error(error.message);
   }
+};
+
+const updateReadedNoti = async (userId) => {
+  try {
+    const notifications = await Notification.update(
+      {
+        is_read: true,
+      },
+      {
+        where: {
+          user_id: userId,
+        },
+      }
+    );
+
+    if (!notifications) {
+      return {
+        success: false,
+        message: "Update readed notification failed",
+        data: [],
+      };
+    }
+
+    return {
+      success: true,
+      message: "Update readed notification successfully",
+      data: notifications,
+    };
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+const deleteNotification = async (userId) => {
+  try {
+    const notification = await Notification.destroy({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    if (!notification) {
+      return {
+        success: false,
+        message: "Delete notification failed",
+        data: {},
+      };
+    }
+
+    return {
+      success: true,
+      message: "Delete notification successfully",
+      data: notification,
+    };
+  } catch (error) {
+    throw new Error(error.message);
+  }
 }
 
-module.exports = { getAllNotifications, createNotification, getAllNotificationDetail };
+module.exports = {
+  getAllNotifications,
+  getAllNotificationDetail,
+  createNotification,
+  updateReadedNoti,
+  deleteNotification
+};

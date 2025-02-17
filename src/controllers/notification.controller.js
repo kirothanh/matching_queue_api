@@ -42,5 +42,41 @@ module.exports = {
         errors: error.message,
       });
     }
+  },
+  updateReadedNoti: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const result = await notificationService.updateReadedNoti(userId)
+
+      if (!result) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Update readed notification failed",
+        errors: error.message
+      });
+    }
+  },
+  deleteNotification: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const result = await notificationService.deleteNotification(userId)
+
+      if (!result) {
+        return res.status(400).json(result);
+      }
+
+      return res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Delete notification failed",
+        errors: error.message
+      });
+    }
   }
 }
