@@ -112,6 +112,31 @@ module.exports = {
       })
     }
   },
+  deleteMatchByUser: async (req, res) => {
+    try {
+      const { matchId } = req.params;
+      const result = await Match.destroy({
+        where: { id: matchId }
+      });
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: "Match not found"
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Delete match successfully"
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Delete match failed"
+      });
+    }
+  },
   createMatch: async (req, res) => {
     const userId = req.userId;
 
