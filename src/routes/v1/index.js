@@ -6,6 +6,7 @@ const clubRouter = require("../v1/clubRoute");
 const matchesRouter = require("../v1/matchesRoute");
 const profileRouter = require("../v1/profileRoute");
 const chatRouter = require("../v1/chatRoute");
+const articleRouter = require("../v1/articleRouter");
 const notificationRouter = require("../v1/notificationRoute");
 const uploadImageRouter = require("../v1/uploadImageRouter");
 const { isAuthorized } = require("../../middlewares/authMiddlewares");
@@ -25,6 +26,7 @@ router.use('/club', isAuthorized, clubRouter);
 router.use('/matches', isAuthorized, redisConnect, matchesRouter);
 router.use('/chat', chatRouter)
 router.use('/notifications', notificationRouter)
+router.use('/article', isAuthorized, articleRouter)
 
 router.use('/upload', uploadImageRouter)
 
