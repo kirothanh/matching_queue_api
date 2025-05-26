@@ -1,9 +1,18 @@
-const { Article } = require("../models/index");
+const { Article, User } = require("../models/index");
+const { sanitizeHtml } = require("../utils/sanitizeHtml");
 
 module.exports = {
   getArticles: async (req, res) => {
     try {
-      const articles = await Article.findAll();
+      const articles = await Article.findAll({
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["id", "name", "avatar", "email"],
+          },
+        ],
+      });
 
       if (!articles) {
         return res.status(404).json({
@@ -30,7 +39,9 @@ module.exports = {
       const { content } = req.body;
       const userId = req.userId;
 
-      if (!content) {
+      const cleanHTML = sanitizeHtml(content);
+
+      if (!cleanHTML) {
         return res.status(400).json({
           success: false,
           message: "Content is required",
@@ -38,7 +49,7 @@ module.exports = {
       }
 
       const newArticle = await Article.create({
-        content,
+        content: cleanHTML,
         user_id: userId,
       });
 
@@ -69,7 +80,7 @@ module.exports = {
 
       const updatedArticle = await Article.update(
         { content },
-        { where: { id: articleId } },
+        { where: { id: articleId } }
       );
 
       if (!updatedArticle) {
@@ -108,7 +119,7 @@ module.exports = {
         success: true,
         message: "Get articles successfully",
         data: articles,
-      })
+      });
     } catch (error) {
       return res.status(500).json({
         success: false,
@@ -135,7 +146,7 @@ module.exports = {
         success: true,
         message: "Delete article successfully",
         data: deletedArticle,
-      })
+      });
     } catch (error) {
       return res.status(500).json({
         success: false,
@@ -143,5 +154,5 @@ module.exports = {
         errors: error.message,
       });
     }
-  }
+  },
 };

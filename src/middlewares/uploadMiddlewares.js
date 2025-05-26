@@ -1,5 +1,6 @@
 const multer = require('multer');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
 // Configure multer for temporary storage
 const storage = multer.memoryStorage();
@@ -17,6 +18,13 @@ const upload = multer({
   },
 });
 
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Quá nhiều upload ảnh, vui lòng thử lại sau.',
+})
+
 module.exports = {
   upload,
+  uploadLimiter
 };

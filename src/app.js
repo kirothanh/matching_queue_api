@@ -26,8 +26,8 @@ app.use(cors({
 }));
 
 // Body Parse
-app.use(express.json()); //Nhận body từ json
-app.use(express.urlencoded({ extended: true })) //Nhận body từ urlencoded
+app.use(express.json({ limit: '10mb' })); //Nhận body từ json
+app.use(express.urlencoded({ limit: '10mb', extended: true }))//Nhận body từ urlencoded
 app.use(express.static('public'));
 
 socketHandler(io)

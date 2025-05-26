@@ -1,4 +1,5 @@
 const { createImageObject } = require("../utils/uploadImageS3");
+const cloudinary = require("../config/cloudinary.config")
 
 module.exports = {
   uploadImage: async (req, res) => {
@@ -21,6 +22,22 @@ module.exports = {
     } catch (error) {
       console.error("Upload error:", error);
       res.status(500).json({ error: "Failed to upload image" });
+    }
+  },
+  uploadImageCloudinary: async (req, res) => {
+    const base64 = req.body.imageBase64;
+
+    if (!base64 || !base64.startsWith('data:image')) {
+      return res.status(400).json({ error: 'Invalid base64 image data' });
+    }
+
+    try {
+      const result = await cloudinary.uploader.upload(base64);
+
+      // res.json({ url: result.secure_url });
+      return res.status(200).json({ url: result.secure_url });
+    } catch (error) {
+      res.status(500).json({ error: 'Upload failed', detail: error.message });
     }
   }
 }
