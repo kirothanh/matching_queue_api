@@ -1,5 +1,7 @@
 const { createImageObject } = require("../utils/uploadImageS3");
-const cloudinary = require("../config/cloudinary.config")
+const cloudinary = require("../config/cloudinary.config");
+const { upload } = require("../middlewares/uploadMiddlewares");
+const { uploadToCloudinaryMobile } = require("../services/upload.service");
 
 module.exports = {
   uploadImage: async (req, res) => {
@@ -38,6 +40,15 @@ module.exports = {
       return res.status(200).json({ url: result.secure_url });
     } catch (error) {
       res.status(500).json({ error: 'Upload failed', detail: error.message });
+    }
+  },
+  uploadImageCloudinaryMobile: async (req, res) => {
+    try {
+      const filePath = req.file.path;
+      const imageUrl = await uploadToCloudinaryMobile(filePath);
+      res.json({ imageUrl });
+    } catch (error) {
+      res.status(500).json({ error: 'Upload failed' });
     }
   }
 }
