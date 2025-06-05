@@ -71,6 +71,59 @@ module.exports = {
       });
     }
   },
+  getMatchDetail: async (req, res) => {
+    try {
+      const redis = req.redis;
+      const { id: matchId } = req.params;
+
+      console.log('first matchId: ', matchId);
+
+      const match = await Match.findOne({
+        where: { id: matchId },
+        include: [
+          {
+            model: Stadium,
+            as: "stadium",
+            attributes: ["id", "name"],
+          },
+          {
+            model: Club,
+            as: "club",
+            attributes: ["id", "name", "imageUrl"],
+          },
+          {
+            model: User,
+            as: "creator",
+            attributes: ["id", "name"],
+          },
+        ],
+      });
+
+      if (!match) {
+        return res.status(404).json({
+          success: false,
+          message: "Match not found",
+        });
+      }
+
+      const usersJoin = await getMatchesQueueRedisByID(match.id, redis);
+
+      res.status(200).json({
+        success: true,
+        message: "Get matches successfully",
+        data: {
+          ...match.toJSON(),
+          usersJoin,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Get matches failed",
+        errors: error.message,
+      });
+    }
+  },
   manageMatchesByUser: async (req, res) => {
     try {
       const userId = req.userId;

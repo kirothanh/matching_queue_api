@@ -3,6 +3,7 @@ const matchesController = require("../../controllers/matches.controller");
 const router = express.Router();
 
 router.get("/", matchesController.getMatches);
+router.get("/:id", matchesController.getMatchDetail);
 router.get("/manage-match", matchesController.manageMatchesByUser)
 router.delete("/manage-match/:matchId", matchesController.deleteMatchByUser)
 router.post("/create", matchesController.createMatch);
