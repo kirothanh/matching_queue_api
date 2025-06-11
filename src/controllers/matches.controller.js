@@ -4,12 +4,25 @@ const getMatchesQueueRedisByID = async (id, redis) => {
   const listMatchQueueRedis = await redis.getMatchQueue(id)
 
   const listUserMatch = await Promise.all(
-    listMatchQueueRedis.map(async (userMatch) => {
-      const clubPartner = await Club.findOne({
-        where: { createdBy: userMatch },
-        // attributes: ["imageUrl"],
-      })
-      return clubPartner || null;
+    listMatchQueueRedis.map(async (userData) => {
+      try {
+        const { userId, clubId } = JSON.parse(userData);
+        const clubPartner = await Club.findOne({
+          where: {
+            id: clubId,
+            createdBy: userId
+          },
+          attributes: ["id", "name", "imageUrl", "createdBy"],
+        })
+        return clubPartner || null;
+      } catch (error) {
+        // Just userId
+        const clubPartner = await Club.findOne({
+          where: { createdBy: userData },
+          attributes: ["id", "name", "imageUrl", "createdBy"],
+        })
+        return clubPartner || null;
+      }
     })
   )
 
@@ -50,7 +63,6 @@ module.exports = {
       const userJoinMatches = await Promise.all(
         matches.map(async (match) => {
           const userJoinMatch = await getMatchesQueueRedisByID(match.id, redis)
-          // console.log('userJoinMatch: ', userJoinMatch)
           return {
             ...match.toJSON(),
             usersJoin: userJoinMatch
@@ -75,8 +87,6 @@ module.exports = {
     try {
       const redis = req.redis;
       const { id: matchId } = req.params;
-
-      console.log('first matchId: ', matchId);
 
       const match = await Match.findOne({
         where: { id: matchId },
@@ -275,70 +285,86 @@ module.exports = {
   joinMatch: async (req, res) => {
     try {
       const redis = req.redis;
-      const { id, partner_id } = req.body;
+      const { id: matchId, partner_id: partnerId, club_id: clubId } = req.body;
 
-      if (!id || !partner_id) {
+
+      if (!matchId || !partnerId || !clubId) {
         return res.status(400).json({
           success: false,
-          message: "Failed to join match",
+          message: "Match ID, Partner ID and Club ID are required",
         });
       }
 
-      // Kiem tra da co club chua
-      const clubPartner = await Club.findOne({ where: { createdBy: partner_id } })
+      const partnerClub = await Club.findOne({
+        where: {
+          id: clubId,
+          createdBy: partnerId
+        }
+      })
 
-      if (!clubPartner) {
+      if (!partnerClub) {
         return res.status(404).json({
           success: false,
-          message: "You need to create club before join",
+          message: "Club not found or you don't have permission to use this club",
         });
       }
 
-      // Kiem tra nguoi do co phai tao tran khong
-      // - Tim match bằng cái match_id truyền lên
-      // - CreatedBy có băng partnerId hay ko
-      const match = await Match.findOne({ where: { id: id, createdBy: partner_id } });
+      const existingMatch = await Match.findOne({ where: { id: matchId, createdBy: partnerId } });
 
-      if (match) {
+      if (existingMatch) {
         return res.status(403).json({
           success: false,
           message: "You can't join match by you created",
         });
       }
 
-      const oldListUserMatch = await redis.getMatchQueue(id)
+      const currentMatchQueue = await redis.getMatchQueue(matchId)
 
-      const findExistPartner = oldListUserMatch.find((partner) => partner === partner_id.toString())
+      const isPartnerInQueue = currentMatchQueue.find((userData) => {
+        const { userId } = JSON.parse(userData);
+        return userId === partnerId.toString();
+      })
 
-      if (findExistPartner) {
+      if (isPartnerInQueue) {
         return res.status(409).json({
           success: false,
           message: "You already exists in the match.",
         });
       }
 
-      await redis.pushMatchQueue(id, partner_id.toString());
-      const newListUserMatch = await redis.getMatchQueue(id)
+      // Store both userId and clubId in Redis
+      const userData = JSON.stringify({
+        userId: partnerId.toString(),
+        clubId: clubId
+      });
 
-      const listUserMatch = await Promise.all(
-        newListUserMatch.map(async (userMatch) => {
-          const clubPartner = await Club.findOne({
-            where: { createdBy: userMatch },
+      await redis.pushMatchQueue(matchId, userData);
+      const updatedMatchQueue = await redis.getMatchQueue(matchId)
+
+      const matchParticipants = await Promise.all(
+        updatedMatchQueue.map(async (userData) => {
+          const { userId, clubId } = JSON.parse(userData);
+          const participantClub = await Club.findOne({
+            where: {
+              id: clubId,
+              createdBy: userId
+            },
+            attributes: ["id", "name", "imageUrl", "createdBy"],
           })
-          return clubPartner;
+          return participantClub;
         })
       )
 
-      _io.to(`match_${id}`).emit("userJoined", {
+      _io.to(`match_${matchId}`).emit("userJoined", {
         message: `A new user joined the match!`,
-        matchId: id,
-        users: listUserMatch
+        matchId: matchId,
+        users: matchParticipants
       })
 
       return res.status(200).json({
         success: true,
         message: "Joined match successfully",
-        listUserMatch
+        matchParticipants
       })
 
     } catch (error) {

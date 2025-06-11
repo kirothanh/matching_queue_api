@@ -22,8 +22,9 @@ module.exports = {
   close: async function () {
     await this.client.disconnect()
   },
-  pushMatchQueue: async function (match_id, partner_id) {
-    await this.client.rPush(`match_${match_id}`, partner_id)
+  pushMatchQueue: async function (match_id, userData) {
+    // userData should be a JSON string containing userId and clubId
+    await this.client.rPush(`match_${match_id}`, userData)
   },
   getMatchQueue: async function (match_id) {
     return await this.client.lRange(`match_${match_id}`, 0, -1)

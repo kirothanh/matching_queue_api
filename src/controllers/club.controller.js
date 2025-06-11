@@ -34,6 +34,36 @@ module.exports = {
       });
     }
   },
+  getClubById: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const club = await Club.findAll({
+        where: {
+          createdBy: id,
+        },
+      });
+
+      if (!club) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy đội bóng",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Lấy dự liệu đội bóng thành công",
+        data: club,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Get club by id failed",
+        errors: error.message,
+      });
+    }
+  },
   createClub: async (req, res) => {
     try {
       const userId = req.userId;
@@ -73,4 +103,29 @@ module.exports = {
       });
     }
   },
+  createClubMobile: async (req, res) => {
+    try {
+      const userId = req.userId;
+      const { name, description, image: imageUrl } = req.body;
+      const newData = { name, description, imageUrl, createdBy: userId };
+
+      const createdClub = await Club.create(newData);
+
+      if (!createdClub) {
+        return res.status(500).json({ message: "Lỗi khi tạo đội bóng" });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: "Tạo đội bóng thành công",
+        data: createdClub,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Tạo đội bóng thất bại",
+        errors: error.message,
+      });
+    }
+  }
 }
