@@ -85,4 +85,35 @@ module.exports = {
       res.status(500).json({ message: "Internal server error." });
     }
   },
+  updateProfileMobile: async (req, res) => {
+    try {
+      const { name, email, phone, avatar } = req.body;
+      const userId = req.userId;
+
+      const updateData = { name, email, phone, avatar };
+
+      const updatedUser = await User.update(updateData, {
+        where: {
+          id: userId,
+        },
+        returning: true,
+      });
+
+      if (updatedUser[0] === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found or no changes made.",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Profile updated successfully.",
+        data: updatedUser[1][0],
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  }
 };
