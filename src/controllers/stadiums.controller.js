@@ -1,4 +1,5 @@
 const { Stadium, Provinces, Districts, Wards } = require("../models/index");
+const { Op } = require("sequelize");
 const { v4: uuidv4 } = require("uuid");
 const { putImageObject, createImageObject } = require("../utils/uploadImageS3");
 
@@ -38,6 +39,83 @@ module.exports = {
       });
     }
   },
+  searchStadiums: async (req, res) => {
+    try {
+      const keyword = req.query.q;
+      if (!keyword) return res.status(404).json({ message: "Missing query" });
+
+      // Normalize keyword by trimming
+      const normalizedKeyword = keyword.trim();
+
+      const results = await Stadium.findAll({
+        where: {
+          [Op.or]: [
+            {
+              name: {
+                [Op.like]: `%${normalizedKeyword}%`
+              }
+            },
+            {
+              address: {
+                [Op.like]: `%${normalizedKeyword}%`
+              }
+            }
+          ]
+        },
+        include: [
+          {
+            model: Provinces,
+            as: "province",
+            attributes: ["id", "name"],
+            where: {
+              name: {
+                [Op.like]: `%${normalizedKeyword}%`
+              }
+            },
+            required: false
+          },
+          {
+            model: Districts,
+            as: "district",
+            attributes: ["id", "name"],
+            where: {
+              name: {
+                [Op.like]: `%${normalizedKeyword}%`
+              }
+            },
+            required: false
+          },
+          {
+            model: Wards,
+            as: "ward",
+            attributes: ["id", "name"],
+            where: {
+              name: {
+                [Op.like]: `%${normalizedKeyword}%`
+              }
+            },
+            required: false
+          }
+        ],
+        limit: 20
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Search stadiums successfully",
+        data: results
+      });
+
+    } catch (error) {
+      console.error('Search error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal Server Error',
+        errors: error.message
+      });
+    }
+  },
+
   getStadiumDetail: async (req, res) => {
     try {
       const stadiumId = req.params.id;

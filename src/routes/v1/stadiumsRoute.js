@@ -6,6 +6,7 @@ const { UserRole } = require("../../constant/enums");
 const { upload } = require("../../middlewares/uploadMiddlewares");
 
 router.get("/", stadiumsController.getStadiums);
+router.get("/search", stadiumsController.searchStadiums);
 
 router.use(checkRole(UserRole.ADMIN));
 router.get("/:id", stadiumsController.getStadiumDetail);
