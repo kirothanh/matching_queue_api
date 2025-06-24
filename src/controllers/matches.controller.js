@@ -247,6 +247,9 @@ module.exports = {
         });
       }
 
+      const redis = req.redis;
+      await redis.initializeMatchQueue(createdMatch.id);
+
       const matchWithDetails = await Match.findOne({
         where: { id: createdMatch.id },
         include: [
@@ -285,8 +288,10 @@ module.exports = {
   joinMatch: async (req, res) => {
     try {
       const redis = req.redis;
-      const { id: matchId, partner_id: partnerId, club_id: clubId } = req.body;
-
+      const { id, partner_id, club_id } = req.body;
+      const matchId = parseInt(id, 10);
+      const partnerId = parseInt(partner_id, 10);
+      const clubId = parseInt(club_id, 10);
 
       if (!matchId || !partnerId || !clubId) {
         return res.status(400).json({

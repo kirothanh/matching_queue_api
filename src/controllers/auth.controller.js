@@ -201,11 +201,20 @@ module.exports = {
       }
 
       const accessToken = createAccessToken({ userId });
+      const newRefreshToken = createRefreshToken(userId);
+
+      // Store new refresh token in Redis
+      await redis.connect();
+      await redis.set(`RefreshToken:${newRefreshToken}`, newRefreshToken);
+      // Remove old refresh token
+      await redis.delete(`RefreshToken:${refreshToken}`);
+      await redis.close();
 
       return successResponse({
         res,
         data: {
           accessToken,
+          refreshToken: newRefreshToken,
         },
         message: "Refresh token successfully",
       });

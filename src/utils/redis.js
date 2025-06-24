@@ -28,5 +28,11 @@ module.exports = {
   },
   getMatchQueue: async function (match_id) {
     return await this.client.lRange(`match_${match_id}`, 0, -1)
+  },
+  initializeMatchQueue: async function (match_id) {
+    const existingQueue = await this.client.lRange(`match_${match_id}`, 0, -1);
+    if (existingQueue.length === 0) {
+      console.log(`Initialized empty match queue for match_${match_id}`);
+    }
   }
 }

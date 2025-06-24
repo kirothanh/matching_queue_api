@@ -1,6 +1,7 @@
 const { User } = require("../models/index");
 const { v4: uuidv4 } = require("uuid");
 const { putImageObject } = require("../utils/uploadImageS3");
+const { hashPassword } = require("../utils/hash");
 
 module.exports = {
   getProfile: async (req, res) => {
@@ -113,6 +114,36 @@ module.exports = {
       });
     } catch (error) {
       console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  },
+  updatePassword: async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      const userId = req.userId;
+
+      const user = await User.findOne({
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      user.password = hashPassword(newPassword);
+      await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Reset password successfully",
+      });
+    } catch (error) {
+      console.error("Error updating password:", error);
       res.status(500).json({ message: "Internal server error." });
     }
   }

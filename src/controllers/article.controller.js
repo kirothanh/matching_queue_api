@@ -106,7 +106,16 @@ module.exports = {
   getArticleByUserId: async (req, res) => {
     try {
       const userId = req.params.userId;
-      const articles = await Article.findAll({ where: { user_id: userId } });
+      const articles = await Article.findAll({
+        where: { user_id: userId },
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["id", "name", "avatar", "email"],
+          },
+        ],
+      });
 
       if (!articles) {
         return res.status(404).json({
