@@ -384,6 +384,9 @@ module.exports = {
     try {
       const { partnerId, matchId } = req.body;
 
+      console.log('partnerId: ', partnerId)
+      console.log('matchId: ', matchId)
+
       if (!partnerId || !matchId) {
         return res.status(404).json({
           success: false,
